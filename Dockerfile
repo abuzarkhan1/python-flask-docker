@@ -1,8 +1,13 @@
 FROM python:3.11-alpine
-LABEL maintainer="lorenz.vanthillo@gmail.com"
-COPY . /app
+RUN apk add --no-cache \
+    gcc \
+    python3-dev \
+    musl-dev \
+    linux-headers
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 EXPOSE 8080
 ENTRYPOINT ["python"]
 CMD ["src/app.py"]
