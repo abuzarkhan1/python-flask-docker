@@ -2,9 +2,204 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Index page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
 </head>
-<body>
-The hostname of the container is <b>{{ hostname }}</b> and its IP is <b>{{ ip }}</b>.
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-server text-blue-600 text-2xl mr-3"></i>
+                    <span class="text-xl font-semibold">System Monitor</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-gray-600" id="current-time"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- System Info Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-microchip text-blue-500 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="text-gray-500 text-sm">Hostname</h3>
+                        <p class="text-lg font-semibold">{{ system_info.hostname }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-network-wired text-green-500 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="text-gray-500 text-sm">IP Address</h3>
+                        <p class="text-lg font-semibold">{{ system_info.ip }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-memory text-purple-500 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="text-gray-500 text-sm">Total RAM</h3>
+                        <p class="text-lg font-semibold">{{ system_info.ram }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-cog text-red-500 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="text-gray-500 text-sm">Platform</h3>
+                        <p class="text-lg font-semibold">{{ system_info.platform }} {{ system_info.platform_release }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- CPU Usage -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">CPU Usage</h3>
+                <canvas id="cpuChart" height="200"></canvas>
+            </div>
+
+            <!-- Memory Usage -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">Memory Usage</h3>
+                <canvas id="memoryChart" height="200"></canvas>
+            </div>
+
+            <!-- Disk Usage -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">Disk Usage</h3>
+                <canvas id="diskChart" height="200"></canvas>
+            </div>
+
+            <!-- Network Traffic -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">Network Traffic</h3>
+                <canvas id="networkChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Initialize charts
+        const cpuChart = new Chart(document.getElementById('cpuChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['User', 'System', 'Idle'],
+                datasets: [{
+                    data: [
+                        {{ metrics.cpu.user }},
+                        {{ metrics.cpu.system }},
+                        {{ metrics.cpu.idle }}
+                    ],
+                    backgroundColor: ['#3B82F6', '#10B981', '#6B7280']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        const memoryChart = new Chart(document.getElementById('memoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [
+                        {{ metrics.memory.percent }},
+                        {{ 100 - metrics.memory.percent }}
+                    ],
+                    backgroundColor: ['#EF4444', '#10B981']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        const diskChart = new Chart(document.getElementById('diskChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Free'],
+                datasets: [{
+                    data: [
+                        {{ metrics.disk.percent }},
+                        {{ 100 - metrics.disk.percent }}
+                    ],
+                    backgroundColor: ['#8B5CF6', '#10B981']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Auto-refresh metrics every 30 seconds
+        function refreshMetrics() {
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    // Update charts with new data
+                    updateCharts(data);
+                });
+        }
+        setInterval(refreshMetrics, 30000);
+
+        function updateCharts(data) {
+            cpuChart.data.datasets[0].data = [
+                data.cpu.user,
+                data.cpu.system,
+                data.cpu.idle
+            ];
+            cpuChart.update();
+
+            memoryChart.data.datasets[0].data = [
+                data.memory.percent,
+                100 - data.memory.percent
+            ];
+            memoryChart.update();
+
+            diskChart.data.datasets[0].data = [
+                data.disk.percent,
+                100 - data.disk.percent
+            ];
+            diskChart.update();
+        }
+    </script>
 </body>
 </html>
